@@ -1,0 +1,69 @@
+version: "3.1"
+services:
+  keycloak:
+    image: jaymorelli/jboss-keycloak
+    ports:
+      - 8080:8080
+    environment:
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin
+
+
+  rabbitmq-container:
+    image: rabbitmq:3.8.3-management
+    hostname: rabbitmq-container
+    ports:
+      - 5673:5673
+      - 5672:5672
+      - 15672:15672
+
+  mysqldb:
+    image: mysql:latest
+    environment:
+      - MYSQL_ROOT_PASSWORD=mysql1234
+      - MYSQL_DATABASE=favorites
+    ports:
+      - 3306:3306
+
+  search-container:
+    image: jaymorelli/searchcomprovmun
+    ports:
+      - 8081:8081
+
+  weather-detail:
+    image: jaymorelli/weather-detail
+    ports:
+      - 8083:8083
+
+  producer-container:
+    image: jaymorelli/producerapi
+    ports:
+      - 8084:8084
+    environment:
+      - spring_rabbitmq_host=rabbitmq-container
+      - spring_rabbitmq_port=5672
+      - spring_rabbitmq_username=guest
+      - spring_rabbitmq_password=guest
+    depends_on:
+      - rabbitmq-container
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  client-container:
+    image: ricardohorta/front-end
+    ports:
+      - 4200:4200
+
+  favorite-container:
+    image: jaymorelli/favorite
+    ports:
+      - 8082:8082
+    environment:
+      - spring_rabbitmq_host=rabbitmq-container
+      - spring_rabbitmq_port=5672
+      - spring_rabbitmq_username=guest
+      - spring_rabbitmq_password=guest
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysqldb:3306/favorites
+    depends_on:
+      - rabbitmq-container
+      - mysqldb
